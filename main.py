@@ -5,6 +5,7 @@ import numpy             as np
 import matplotlib.pyplot as plt
 import tensorflow        as tf
 
+from datetime               import datetime
 from math                   import ceil,floor
 from tensorflow.keras.utils import load_img,save_img,img_to_array
 
@@ -283,6 +284,8 @@ def main():
     print_debug_info = opt.print_debug_info
     save_debug_imgs  = opt.save_debug_imgs
     
+    elapsed_time = datetime.now()
+    
     with open(os.path.join(os.getcwd(), 'config.json'), 'r', encoding='utf-8') as f:
         config_data = json.load(f)
     
@@ -321,6 +324,8 @@ def main():
         with open(config_data['output_file'], 'w', encoding='utf-8') as f:
             json.dump(data_output_dict, f, indent=4)
         
+    elapsed_time = datetime.now() - elapsed_time
+    print('Run time: ', elapsed_time)
 
 if __name__ == '__main__':
     main()
