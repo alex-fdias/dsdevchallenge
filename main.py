@@ -330,6 +330,19 @@ def main():
         
     elapsed_time = datetime.now() - elapsed_time
     print('Run time: ', elapsed_time)
+    
+    fig, axs = plt.subplots(1, 2, figsize=(9.0,4.8))
+    axs[0].scatter(np.arange(1,len(data_label_width_to_ratio)+1, step=1), data_label_width_to_ratio)
+    axs[0].set_xlabel('label no.')
+    axs[0].set_ylabel('width-to-height ratio')
+    axs[0].set_xlim(-.5+1, len(data_label_width_to_ratio)+.5)
+    axs[0].set_xticks(np.arange(1,len(data_label_width_to_ratio)+1, step=1))
+    n, _, _ = axs[1].hist(x=data_label_width_to_ratio)
+    #axs[0].set_xlabel('label no.')
+    axs[1].set_xlabel('width-to-height ratio')
+    axs[1].set_ylabel('count')
+    axs[1].set_yticks(np.arange(0,max(n)+1, step=1))
+    plt.show()
 
 if __name__ == '__main__':
     main()
