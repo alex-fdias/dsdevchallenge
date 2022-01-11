@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "folder": "input_images_source_3/",
+      "filename": "raccoon-165",
+      "label_vert_center": 119,
+      "label_horz_center": 110,
+      "label_width": 167,
+      "label_height": 217
+    },
+    {
+      "folder": "input_images_source_3/",
+      "filename": "raccoon-168",
+      "label_vert_center": 195,
+      "label_horz_center": 236,
+      "label_width": 276,
+      "label_height": 215
+    },
+    {
+      "folder": "input_images_source_3/",
+      "filename": "raccoon-168",
+      "label_vert_center": 155,
+      "label_horz_center": 322,
+      "label_width": 298,
+      "label_height": 308
+    },
+    {
+      "folder": "input_images_source_3/",
+      "filename": "raccoon-173",
+      "label_vert_center": 204,
+      "label_horz_center": 358,
+      "label_width": 313,
+      "label_height": 366
+    },
+    {
+      "folder": "input_images_source_3/",
+      "filename": "raccoon-184",
+      "label_vert_center": 347,
+      "label_horz_center": 324,
+      "label_width": 486,
+      "label_height": 540
+    },
+    {
+      "folder": "input_images_source_3/",
+      "filename": "raccoon-189",
+      "label_vert_center": 220,
+      "label_horz_center": 263,
+      "label_width": 489,
+      "label_height": 436
+    }
+  ]
+}

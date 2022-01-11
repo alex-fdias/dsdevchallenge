@@ -1,0 +1,49 @@
+{
+  "data": [
+    {
+      "path": "input_images_source_2/raccoon-125.png",
+      "xmin": 13,
+      "ymin": 6,
+      "xmax": 252,
+      "ymax": 190,
+      "image_height": "195",
+      "image_width": "259"
+    },
+    {
+      "path": "input_images_source_2/raccoon-132.png",
+      "xmin": 6,
+      "ymin": 2,
+      "xmax": 240,
+      "ymax": 131,
+      "image_height": "194",
+      "image_width": "259"
+    },
+    {
+      "path": "input_images_source_2/raccoon-153.png",
+      "xmin": 10,
+      "ymin": 1,
+      "xmax": 612,
+      "ymax": 700,
+      "image_height": "700",
+      "image_width": "700"
+    },
+    {
+      "path": "input_images_source_2/raccoon-154.png",
+      "xmin": 148,
+      "ymin": 56,
+      "xmax": 517,
+      "ymax": 346,
+      "image_height": "419",
+      "image_width": "650"
+    },
+    {
+      "path": "input_images_source_2/raccoon-159.png",
+      "xmin": 14,
+      "ymin": 11,
+      "xmax": 223,
+      "ymax": 221,
+      "image_height": "223",
+      "image_width": "226"
+    }
+  ]
+}

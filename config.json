@@ -1,0 +1,7 @@
+{
+    "max_height": 300,
+    "max_width": 300,
+    "output_folder": "images",
+    "output_file": "data_output.json",
+    "overlap": 0.15
+}
