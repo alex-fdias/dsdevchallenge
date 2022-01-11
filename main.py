@@ -50,6 +50,7 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
         return -1,'source type could not be identified',{}
 
     data_list     = []
+    label_width_to_ratio_list = []
     new_filename_flag = True
     for idx,label in enumerate(label_data['data']):
         if not isinstance(label, dict):
@@ -199,6 +200,7 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
             }
         else:
             raise NotImplementedError
+        label_width_to_ratio_list.append(label_dict['width_to_height'])
         
         image_cropped_padded = tf.image.resize_with_pad(
                                                         image=image_cropped,
@@ -274,7 +276,7 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
             data_dict['labels'] = data_dict_labels_list
             data_list.append(data_dict)
     
-    return 0,'',data_list
+    return 0, '', (data_list, label_width_to_ratio_list)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -305,8 +307,9 @@ def main():
     image_folders = [name for name in os.listdir(os.getcwd()) if name.startswith('input_images_source_') \
                      and os.path.isdir(name)]
     
-    data_output_dict = {}
-    data_output_dict['data'] = []
+    data_output_dict          = {}
+    data_output_dict['data']  = []
+    data_label_width_to_ratio = []
     for image_folder in image_folders:
         # load label metadata if file 'labels.json' exists in the folder 
         if not os.path.isfile(os.path.join(os.getcwd(), image_folder, 'labels.json')):
@@ -316,9 +319,10 @@ def main():
         with open(os.path.join(os.getcwd(), image_folder, 'labels.json'), 'r', encoding='utf-8') as f:
             label_data = json.load(f)
         
-        return_code, return_msg, return_list = process_image_labels(config_data, label_data, print_debug_info, save_debug_imgs)
+        return_code, return_msg, return_lists = process_image_labels(config_data, label_data, print_debug_info, save_debug_imgs)
         if return_code==0:
-            data_output_dict['data'].extend(return_list)
+            data_output_dict['data'].extend(return_lists[0])
+            data_label_width_to_ratio.extend(return_lists[1])
         #break
         
         with open(config_data['output_file'], 'w', encoding='utf-8') as f:
