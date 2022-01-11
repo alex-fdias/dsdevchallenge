@@ -42,7 +42,7 @@ def identify_source_type(label_data):
     else:
         return -1
 
-def process_image_labels(config_data, label_data, print_debug_info):
+def process_image_labels(config_data, label_data, print_debug_info, save_debug_imgs):
     
     source_type = identify_source_type(label_data)
     if source_type==-1:
@@ -248,20 +248,24 @@ def process_image_labels(config_data, label_data, print_debug_info):
                 for idx_ in range(len(image_labels_only_list)):
                     image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
                     image_labels_aux[image_labels_only_list[idx_]] = image[image_labels_only_list[idx_]]
-                    save_img(
-                     path = curr_filename.replace('.jpg','_label_' + str(idx_+1) + '.jpg'),
-                     x    = image_labels_aux,
-                    )
+                    
+                    if save_debug_imgs:
+                        save_img(
+                         path = curr_filename.replace('.jpg','_label_' + str(idx_+1) + '.jpg'),
+                         x    = image_labels_aux,
+                        )
                    
                 for idx_ in range(len(image_labels_only_list)-1):
                     image_labels_only_list[-1] = np.bitwise_or(image_labels_only_list[-1],image_labels_only_list[idx_])
             
             image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
             image_labels_aux[image_labels_only_list[-1]] = image[image_labels_only_list[-1]]
-            save_img(
-                     path = curr_filename.replace('.jpg','_all_labels.jpg'),
-                     x    = image_labels_aux,
-                    )
+            
+            if save_debug_imgs:
+                save_img(
+                         path = curr_filename.replace('.jpg','_all_labels.jpg'),
+                         x    = image_labels_aux,
+                        )
             data_dict['label_area_perc'] = image_labels_only_list[-1].sum()/np.prod(image.shape[0:2])
             if data_dict['label_area_perc']>1.0:
                 # log error for calculated area value here
@@ -274,8 +278,10 @@ def process_image_labels(config_data, label_data, print_debug_info):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-print_debug_info", action="store_true", help="print some debugging info")
+    parser.add_argument("-save_debug_imgs" , action="store_true", help="save some debugging images")
     opt = parser.parse_args()    
     print_debug_info = opt.print_debug_info
+    save_debug_imgs  = opt.save_debug_imgs
     
     with open(os.path.join(os.getcwd(), 'config.json'), 'r', encoding='utf-8') as f:
         config_data = json.load(f)
@@ -307,7 +313,7 @@ def main():
         with open(os.path.join(os.getcwd(), image_folder, 'labels.json'), 'r', encoding='utf-8') as f:
             label_data = json.load(f)
         
-        return_code, return_msg, return_list = process_image_labels(config_data, label_data, print_debug_info)
+        return_code, return_msg, return_list = process_image_labels(config_data, label_data, print_debug_info, save_debug_imgs)
         if return_code==0:
             data_output_dict['data'].extend(return_list)
         #break
