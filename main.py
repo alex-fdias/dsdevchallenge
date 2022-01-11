@@ -192,7 +192,7 @@ def process_image_labels(config_data, label_data, print_debug_info):
                           'xmin': (offset_width_  + 1)/data_dict['image_width' ],
                           'ymin': (offset_height_ + 1)/data_dict['image_height'],
                           'xmax': (offset_width_  + 1 + label['label_width' ])/data_dict['image_width' ],
-                          'ymax': (offset_width_  + 1 + label['label_height'])/data_dict['image_height'],
+                          'ymax': (offset_height_ + 1 + label['label_height'])/data_dict['image_height'],
                           'label': 'Raccoon',
                           'width_to_height': label['label_width']/label['label_height']
             }
