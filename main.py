@@ -322,5 +322,4 @@ if __name__ == '__main__':
     
     
     # no final: rever python meetup (PEP8)
-    # exceptions? file 'output_file' not found
     # remove comments
