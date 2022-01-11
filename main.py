@@ -67,7 +67,7 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                 raise NotImplementedError
             
             data_dict     = {}
-            image_labels_only_list = []
+            image_label_masks_list = []
             if source_type==1:
                 filename_path = os.path.join(label['folder'], label['filename'])
                 data_dict['path'    ] = label['folder']
@@ -119,7 +119,7 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                     #return -1,'image width is smaller than label width in metadata',{}
                     continue
 
-        image_labels_only_list.append(np.ones(shape=image.shape[0:2], dtype=bool))
+        image_label_masks_list.append(np.ones(shape=image.shape[0:2], dtype=bool))
         if source_type==1:
             offset_height_ = round(label['ymin']*image.shape[0])-1
             offset_width_  = round(label['xmin']*image.shape[1])-1
@@ -132,11 +132,11 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                                       target_width  = round(label['xmax']*image.shape[1])-offset_width_,
                                      )
             
-            image_labels_only_list[-1][:,:offset_width_                      ] = 0
-            image_labels_only_list[-1][:,round(label['xmax']*image.shape[1]):] = 0
+            image_label_masks_list[-1][:,:offset_width_                      ] = 0
+            image_label_masks_list[-1][:,round(label['xmax']*image.shape[1]):] = 0
             
-            image_labels_only_list[-1][:offset_height_,offset_width_:round(label['xmax']*image.shape[1])                     ] = 0
-            image_labels_only_list[-1][round(label['ymax']*image.shape[0]):,offset_width_:round(label['xmax']*image.shape[1])] = 0
+            image_label_masks_list[-1][:offset_height_,offset_width_:round(label['xmax']*image.shape[1])                     ] = 0
+            image_label_masks_list[-1][round(label['ymax']*image.shape[0]):,offset_width_:round(label['xmax']*image.shape[1])] = 0
             
             label_dict = {
                           'xmin': label['xmin'],
@@ -157,11 +157,11 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                                       target_width  = label['xmax']-offset_width_,
                                      )
             
-            image_labels_only_list[-1][:,:offset_width_] = 0
-            image_labels_only_list[-1][:,label['xmax']:] = 0
+            image_label_masks_list[-1][:,:offset_width_] = 0
+            image_label_masks_list[-1][:,label['xmax']:] = 0
             
-            image_labels_only_list[-1][:offset_height_,offset_width_:label['xmax']] = 0
-            image_labels_only_list[-1][label['ymax']:,offset_width_:label['xmax']] = 0
+            image_label_masks_list[-1][:offset_height_,offset_width_:label['xmax']] = 0
+            image_label_masks_list[-1][label['ymax']:,offset_width_:label['xmax']] = 0
             
             label_dict = {
                           'xmin' : label['xmin']/data_dict['image_width' ],
@@ -182,11 +182,11 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                                       target_width  = label['label_width'],
                                      )
             
-            image_labels_only_list[-1][:,:offset_width_] = 0
-            image_labels_only_list[-1][:,(floor(label['label_horz_center']+label['label_width']/2)-1):] = 0
+            image_label_masks_list[-1][:,:offset_width_] = 0
+            image_label_masks_list[-1][:,(floor(label['label_horz_center']+label['label_width']/2)-1):] = 0
 
-            image_labels_only_list[-1][:offset_height_,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
-            image_labels_only_list[-1][(floor(label['label_vert_center']+label['label_height']/2)-1):,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
+            image_label_masks_list[-1][:offset_height_,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
+            image_label_masks_list[-1][(floor(label['label_vert_center']+label['label_height']/2)-1):,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
             
             label_dict = {
                           'xmin': (offset_width_  + 1)/data_dict['image_width' ],
@@ -244,10 +244,10 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                new_filename_flag = False
 
         if new_filename_flag: # meaning: end of label_data['data'] or new filename
-            if len(image_labels_only_list)>1: # image with more than one label
-                for idx_ in range(len(image_labels_only_list)):
+            if len(image_label_masks_list)>1: # image with more than one label
+                for idx_ in range(len(image_label_masks_list)):
                     image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
-                    image_labels_aux[image_labels_only_list[idx_]] = image[image_labels_only_list[idx_]]
+                    image_labels_aux[image_label_masks_list[idx_]] = image[image_label_masks_list[idx_]]
                     
                     if save_debug_imgs:
                         save_img(
@@ -255,18 +255,18 @@ def process_image_labels(config_data, label_data, print_debug_info, save_debug_i
                          x    = image_labels_aux,
                         )
                    
-                for idx_ in range(len(image_labels_only_list)-1):
-                    image_labels_only_list[-1] = np.bitwise_or(image_labels_only_list[-1],image_labels_only_list[idx_])
+                for idx_ in range(len(image_label_masks_list)-1):
+                    image_label_masks_list[-1] = np.bitwise_or(image_label_masks_list[-1],image_label_masks_list[idx_])
             
             image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
-            image_labels_aux[image_labels_only_list[-1]] = image[image_labels_only_list[-1]]
+            image_labels_aux[image_label_masks_list[-1]] = image[image_label_masks_list[-1]]
             
             if save_debug_imgs:
                 save_img(
                          path = curr_filename.replace('.jpg','_all_labels.jpg'),
                          x    = image_labels_aux,
                         )
-            data_dict['label_area_perc'] = image_labels_only_list[-1].sum()/np.prod(image.shape[0:2])
+            data_dict['label_area_perc'] = image_label_masks_list[-1].sum()/np.prod(image.shape[0:2])
             if data_dict['label_area_perc']>1.0:
                 # log error for calculated area value here
                 pass
