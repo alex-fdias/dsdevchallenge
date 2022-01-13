@@ -4,3 +4,4 @@ data_output.json
 /images
 raccoon-*.jpg
 /__pycache__
+plot_distribution.pdf
