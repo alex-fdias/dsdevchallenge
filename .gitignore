@@ -3,3 +3,4 @@ processing.log
 data_output.json
 /images
 raccoon-*.jpg
+/__pycache__
