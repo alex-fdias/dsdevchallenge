@@ -11,8 +11,8 @@ def main():
     save_debug_imgs  = opt.save_debug_imgs
     
     img_processing = ImageProcessing(save_debug_imgs=False)
-    #img_processing.run()
-    #img_processing.plot_distribution()
+    img_processing.run()
+    img_processing.plot_distribution()
 
 if __name__ == '__main__':
     main()
