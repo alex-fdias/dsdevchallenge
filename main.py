@@ -326,7 +326,7 @@ def main():
         #break
         
         with open(config_data['output_file'], 'w', encoding='utf-8') as f:
-            json.dump(data_output_dict, f, indent=4)
+            json.dump(data_output_dict, f, indent=2)
         
     elapsed_time = datetime.now() - elapsed_time
     print('Run time: ', elapsed_time)
