@@ -150,7 +150,7 @@ class ImageProcessing:
             
         elapsed_time = datetime.now() - elapsed_time
 
-        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Finished image processing run, time taken {elapsed_time}'\n")
+        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Finished image processing, run time {elapsed_time}'\n")
         #print('Run time: ', elapsed_time)
 
     def process_image_labels(self, label_data, source_type):
