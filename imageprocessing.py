@@ -1,4 +1,4 @@
-import os,shutil,argparse
+import os,shutil,argparse,inspect
 import json
 
 import numpy             as np
@@ -13,17 +13,19 @@ from tensorflow.keras.utils import load_img,save_img,img_to_array
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 class ImageProcessing:
-    def __init__(self, path=os.getcwd(), config_filename='config.json', print_debug_info=None, save_debug_imgs=False):
+    def __init__(self, path=os.getcwd(), config_filename='config.json', log_filename='processing.log', save_debug_imgs=False):
         self.path              = path
         self.folder_debug_imgs = 'images_debug'
         self.config_filename   = config_filename
-        self.print_debug_info  = print_debug_info
+        self.log_filename      = log_filename
         self.save_debug_imgs   = save_debug_imgs
         
         self._run_time                  = None
         self._data_label_width_to_ratio = None
         
-        self.load_config()
+
+        self.print_init_msg()
+        self.load_config()              
         self.clean_files()
         
     @property
@@ -66,14 +68,98 @@ class ImageProcessing:
         else:
             return -1
 
-    @staticmethod
-    def process_image_labels(config_data, label_data, source_type, path, folder_debug_imgs, print_debug_info, save_debug_imgs):
+    def print_save_log_file(self, output_str):
+        print(output_str, end='')
+        with open(os.path.join(self.path, self.log_filename), 'a', encoding='utf-8') as f:
+            f.write(output_str)
+    
+    def print_init_msg(self):
+        self.print_save_log_file(f"\n{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image processing instance created'\n")
+    
+    def load_config(self):
+        with open(os.path.join(self.path, self.config_filename), 'r', encoding='utf-8') as f:
+            self.config_data = json.load(f)
+        
+        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Loaded run configuration data'\n")
+    
+    def clean_files(self):
+        # clear output file, output folder
+        if os.path.isfile(os.path.join(self.path, self.config_data['output_file'])):
+            os.remove(os.path.join(self.path, self.config_data['output_file']))
+        if os.path.isdir(os.path.join(self.path, self.config_data['output_folder'])):        
+            for root, dirs, files in os.walk(os.path.join(self.path, self.config_data['output_folder'])):
+                for f in files:
+                    os.remove(os.path.join(root, f))
+                for d in dirs:
+                    shutil.rmtree(os.path.join(root, d))
+        else:
+            os.mkdir(os.path.join(self.path, self.config_data['output_folder']))
+
+        # clear debug output folder
+        if os.path.isdir(os.path.join(self.path, self.folder_debug_imgs)):
+            if self.save_debug_imgs:
+                for root, dirs, files in os.walk(os.path.join(self.path, self.folder_debug_imgs)):
+                    for f in files:
+                        os.remove(os.path.join(root, f))
+                    for d in dirs:
+                        shutil.rmtree(os.path.join(root, d))
+            else:
+                shutil.rmtree(os.path.join(self.path, self.folder_debug_imgs))
+        elif self.save_debug_imgs:
+            os.mkdir(os.path.join(self.path, self.folder_debug_imgs))        
+        
+        if os.path.isfile(os.path.join(self.path, 'plot_distribution.pdf')):
+            os.remove(os.path.join(self.path, 'plot_distribution.pdf'))
+
+        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Cleared files of previous run'\n")
+    
+    def run(self):
+        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Started image processing run'\n")
+    
+        elapsed_time = datetime.now()
+        
+        # find folders with files to process
+        image_folders = [name for name in os.listdir(self.path) if name.startswith('input_images_source_') and os.path.isdir(name)]
+        
+        data_output_dict          = {}
+        data_output_dict['data']  = []
+        self._data_label_width_to_ratio = []
+        for image_folder in image_folders:
+            # load label metadata if file 'labels.json' exists in the folder 
+            if not os.path.isfile(os.path.join(self.path, image_folder, 'labels.json')):
+                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Folder \"{os.path.join(self.path, image_folder)}\" has no \"labels.json\" file'\n")
+                continue
+            
+            with open(os.path.join(self.path, image_folder, 'labels.json'), 'r', encoding='utf-8') as f:
+                label_data = json.load(f)
+            
+            source_type = self.__class__.identify_source_type(label_data)
+            if source_type==-1:
+                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Source type could not be identified for folder \"{os.path.join(self.path, image_folder)}\"'\n")
+                continue
+            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Source type \"{source_type}\" identified for folder \"{os.path.join(self.path, image_folder)}\"'\n")               
+
+            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Processing files in folder \"{os.path.join(self.path, image_folder)}\"'\n")            
+            return_code, return_msg, return_lists = self.process_image_labels(label_data, source_type)
+            if return_code==0:
+                data_output_dict['data'].extend(return_lists[0])
+                self._data_label_width_to_ratio.extend(return_lists[1])
+            
+        with open(os.path.join(self.path, self.config_data['output_file']), 'w', encoding='utf-8') as f:
+            json.dump(data_output_dict, f, indent=2)
+            
+        elapsed_time = datetime.now() - elapsed_time
+
+        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Finished image processing run, time taken {elapsed_time}'\n")
+        #print('Run time: ', elapsed_time)
+
+    def process_image_labels(self, label_data, source_type):
         data_list                 = []
         label_width_to_ratio_list = []
         new_filename_flag = True
         for idx,label in enumerate(label_data['data']):
             if not isinstance(label, dict):
-                # log sth here
+                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label dictionary non-existent/not found at position {idx+1}'\n")
                 continue
             
             if new_filename_flag:
@@ -90,20 +176,23 @@ class ImageProcessing:
                 data_dict     = {}
                 image_label_masks_list = []
                 if source_type==1:
-                    filename_path = os.path.join(label['folder'], label['filename'])
+                    filename_path = os.path.join(label['folder'].replace('/','\\'), label['filename'])
                     data_dict['path'    ] = label['folder']
                 elif source_type==2:
-                    filename_path = label['path']
+                    filename_path = label['path'].replace('/','\\')
                     data_dict['path'    ] = label['path'][:slash_idx+1]
                 elif source_type==3:
-                    filename_path = os.path.join(label['folder'], label['filename'] + '.jpg')
+                    filename_path = os.path.join(label['folder'].replace('/','\\'), label['filename'] + '.jpg')
                     data_dict['path'    ] = label['folder']
                 else:
                     raise NotImplementedError
                 data_dict['filename'] = curr_filename
                 
-                if not os.path.isfile(filename_path):
-                    return -1,'file specified in metadata does not exist',{}
+                if not os.path.isfile(os.path.join(self.path, filename_path)):
+                    self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'File \"{os.path.join(self.path, filename_path)}\" specified in label metadata not found'\n")
+                    #sys.exit('-1')
+                    continue
+                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Processing file \"{os.path.join(self.path, filename_path)}\"'\n")
                 image = load_img(
                      path       = filename_path,
                      color_mode = 'rgb',
@@ -223,24 +312,23 @@ class ImageProcessing:
             
             image_cropped_padded = tf.image.resize_with_pad(
                                                             image=image_cropped,
-                                                            target_height=config_data['max_height'],
-                                                            target_width=config_data['max_width'],
+                                                            target_height=self.config_data['max_height'],
+                                                            target_width=self.config_data['max_width'],
                                                            )
             
             save_filename = data_dict['filename']
             while True:
-                if os.path.isfile(os.path.join(path, config_data['output_folder'], save_filename)):
+                if os.path.isfile(os.path.join(self.path, self.config_data['output_folder'], save_filename)):
                     extension_idx = save_filename.rfind('.')
                     save_filename = save_filename[0:extension_idx] + '_' + save_filename[extension_idx:]
                 else:
                     break
             
             save_img(
-                     path = os.path.join(path, config_data['output_folder'], save_filename),
+                     path = os.path.join(self.path, self.config_data['output_folder'], save_filename),
                      x    = image_cropped_padded,
                     )
-            if print_debug_info:
-                print('Saved \'' + os.path.join(path, config_data['output_folder'], save_filename) + '\'')
+            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: \'Saved output file \"{os.path.join(self.path, self.config_data['output_folder'], save_filename)}\"\'\n")
             
             data_dict_labels_list.append(label_dict)
             
@@ -271,9 +359,9 @@ class ImageProcessing:
                         image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
                         image_labels_aux[image_label_masks_list[idx_]] = image[image_label_masks_list[idx_]]
                         
-                        if save_debug_imgs:
+                        if self.save_debug_imgs:
                             save_img(
-                             path = os.path.join(path, folder_debug_imgs, curr_filename.replace('.jpg','_label_' + str(idx_+1) + '.jpg')),
+                             path = os.path.join(self.path, self.folder_debug_imgs, curr_filename.replace('.jpg','_label_' + str(idx_+1) + '.jpg')),
                              x    = image_labels_aux,
                             )
                        
@@ -283,9 +371,9 @@ class ImageProcessing:
                 image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
                 image_labels_aux[image_label_masks_list[-1]] = image[image_label_masks_list[-1]]
                 
-                if save_debug_imgs:
+                if self.save_debug_imgs:
                     save_img(
-                             path = os.path.join(path, folder_debug_imgs, curr_filename.replace('.jpg','_all_labels.jpg')),
+                             path = os.path.join(self.path, self.folder_debug_imgs, curr_filename.replace('.jpg','_all_labels.jpg')),
                              x    = image_labels_aux,
                             )
                 data_dict['label_area_perc'] = image_label_masks_list[-1].sum()/np.prod(image.shape[0:2])
@@ -296,73 +384,6 @@ class ImageProcessing:
                 data_list.append(data_dict)
         
         return 0, '', (data_list, label_width_to_ratio_list)
-    
-    def load_config(self):
-        with open(os.path.join(self.path, self.config_filename), 'r', encoding='utf-8') as f:
-            self.config_data = json.load(f)
-    
-    def clean_files(self):
-        # clear output file, output folder and log file
-        if os.path.isfile(os.path.join(self.path, self.config_data['output_file'])):
-            os.remove(os.path.join(self.path, self.config_data['output_file']))
-        if os.path.isdir(os.path.join(self.path, self.config_data['output_folder'])):        
-            for root, dirs, files in os.walk(os.path.join(self.path, self.config_data['output_folder'])):
-                for f in files:
-                    os.remove(os.path.join(root, f))
-                for d in dirs:
-                    shutil.rmtree(os.path.join(root, d))
-        else:
-            os.mkdir(os.path.join(self.path, self.config_data['output_folder']))
-
-        if os.path.isdir(os.path.join(self.path, self.folder_debug_imgs)):
-            if self.save_debug_imgs:
-                for root, dirs, files in os.walk(os.path.join(self.path, self.folder_debug_imgs)):
-                    for f in files:
-                        os.remove(os.path.join(root, f))
-                    for d in dirs:
-                        shutil.rmtree(os.path.join(root, d))
-            else:
-                shutil.rmtree(os.path.join(self.path, self.folder_debug_imgs))
-        elif self.save_debug_imgs:
-            os.mkdir(os.path.join(self.path, self.folder_debug_imgs))        
-        
-        if os.path.isfile(os.path.join(self.path, 'plot_distribution.pdf')):
-            os.remove(os.path.join(self.path, 'plot_distribution.pdf'))
-    
-    def run(self):
-        elapsed_time = datetime.now()
-        
-        # find folders with files to process
-        image_folders = [name for name in os.listdir(self.path) if name.startswith('input_images_source_') and os.path.isdir(name)]
-        
-        data_output_dict          = {}
-        data_output_dict['data']  = []
-        self._data_label_width_to_ratio = []
-        for image_folder in image_folders:
-            # load label metadata if file 'labels.json' exists in the folder 
-            if not os.path.isfile(os.path.join(self.path, image_folder, 'labels.json')):
-                # log sth here
-                continue
-                
-            with open(os.path.join(self.path, image_folder, 'labels.json'), 'r', encoding='utf-8') as f:
-                label_data = json.load(f)
-            
-                
-            source_type = self.__class__.identify_source_type(label_data)
-            if source_type==-1:
-                continue
-                #'source type could not be identified'
-                
-            return_code, return_msg, return_lists = self.__class__.process_image_labels(self.config_data, label_data, source_type, self.path, self.folder_debug_imgs, self.print_debug_info, self.save_debug_imgs)
-            if return_code==0:
-                data_output_dict['data'].extend(return_lists[0])
-                self._data_label_width_to_ratio.extend(return_lists[1])
-            
-        with open(os.path.join(self.path, self.config_data['output_file']), 'w', encoding='utf-8') as f:
-            json.dump(data_output_dict, f, indent=2)
-            
-        elapsed_time = datetime.now() - elapsed_time
-        print('Run time: ', elapsed_time)
     
     def plot_distribution(self, show_window=False):
         if self._data_label_width_to_ratio is not None and len(self._data_label_width_to_ratio)>0:
@@ -379,5 +400,9 @@ class ImageProcessing:
             axs[1].set_yticks(np.arange(0,max(n)+1, step=1))
             
             plt.savefig(os.path.join(self.path,'plot_distribution.pdf'))
+            
+            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: \'Saved output distribution plot file \"{os.path.join(self.path,'plot_distribution.pdf')}\"\'\n")
             if show_window:
                 plt.show()
+        else:
+            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: \'No output distribution data to plot'\n")
