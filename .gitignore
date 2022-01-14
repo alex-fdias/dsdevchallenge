@@ -2,7 +2,6 @@ main.py.old
 processing.log
 data_output.json
 /images
-raccoon-*.jpg
 /__pycache__
 plot_distribution.pdf
 DSDevAssessmentExercise.pdf
