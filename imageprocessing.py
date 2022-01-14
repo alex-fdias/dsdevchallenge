@@ -140,7 +140,7 @@ class ImageProcessing:
             self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Source type \"{source_type}\" identified for folder \"{os.path.join(self.path, image_folder)}\"'\n")               
 
             self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Processing files in folder \"{os.path.join(self.path, image_folder)}\"'\n")            
-            return_code, return_msg, return_lists = self.process_image_labels(label_data, source_type)
+            return_code, return_lists = self.process_image_labels(label_data, source_type)
             if return_code==0:
                 data_output_dict['data'].extend(return_lists[0])
                 self._data_label_width_to_ratio.extend(return_lists[1])
@@ -381,7 +381,7 @@ class ImageProcessing:
                 data_dict['labels'] = data_dict_labels_list
                 data_list.append(data_dict)
         
-        return 0, '', (data_list, label_width_to_ratio_list)
+        return 0, (data_list, label_width_to_ratio_list)
     
     def plot_distribution(self, show_window=False):
         if self._data_label_width_to_ratio is not None and len(self._data_label_width_to_ratio)>0:
