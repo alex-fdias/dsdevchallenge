@@ -157,9 +157,10 @@ class ImageProcessing:
         data_list                 = []
         label_width_to_ratio_list = []
         new_filename_flag = True
+        curr_filename_img_loaded = False
         for idx,label in enumerate(label_data['data']):
             if not isinstance(label, dict):
-                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label dictionary non-existent/not found at position {idx+1}'\n")
+                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metada (dictionary) non-existent at position {idx+1}'\n")
                 continue
             
             if new_filename_flag:
@@ -173,7 +174,7 @@ class ImageProcessing:
                 else:
                     raise NotImplementedError
                 
-                data_dict     = {}
+                data_dict              = {}
                 image_label_masks_list = []
                 if source_type==1:
                     filename_path = os.path.join(label['folder'].replace('/','\\'), label['filename'])
@@ -188,153 +189,159 @@ class ImageProcessing:
                     raise NotImplementedError
                 data_dict['filename'] = curr_filename
                 
+            if not curr_filename_img_loaded:
                 if not os.path.isfile(os.path.join(self.path, filename_path)):
                     self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'File \"{os.path.join(self.path, filename_path)}\" specified in label metadata not found'\n")
-                    continue
-                
-                self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Processing file \"{os.path.join(self.path, filename_path)}\"'\n")
-                image = load_img(
-                     path       = filename_path,
-                     color_mode = 'rgb',
-                    )
-                image = img_to_array(img=image, dtype=np.int32)
-                
+                else:
+                    self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Loading image \"{os.path.join(self.path, filename_path)}\"'\n")
+                    
+                    image = load_img(
+                         path       = filename_path,
+                         color_mode = 'rgb',
+                        )
+                    image = img_to_array(img=image, dtype=np.int32)
+                    curr_filename_img_loaded = True
+                    
+                    data_dict['image_height'] = image.shape[0]
+                    data_dict['image_width' ] = image.shape[1]
+                    data_dict_labels_list     = []
+            
+            
+            if curr_filename_img_loaded:
+                process_curr_label = True
                 if source_type==1:
                     if image.shape[0] != label['image_height']:
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height does not match label metadata height'\n")
-                        continue
+                        process_curr_label = False
                     if image.shape[1] != label['image_width']:
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width does not match label metadata width'\n")
-                        continue
+                        process_curr_label = False
                 elif source_type==2:
                     if image.shape[0] != int(label['image_height']):
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height does not match label metadata height'\n")
-                        continue
+                        process_curr_label = False
                     if image.shape[1] != int(label['image_width']):
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width does not match label metadata width'\n")
-                        continue
-
-                data_dict['image_height'] = image.shape[0]
-                data_dict['image_width' ] = image.shape[1]
-                data_dict_labels_list     = []
-            else:
-                # another label for the same image 
-                if source_type==3:
+                        process_curr_label = False
+                elif source_type==3:
                     if image.shape[0] < label['label_height']:
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height is smaller than label metadata height'\n")
-                        continue
+                        process_curr_label = False
                     if image.shape[1] < label['label_width']:
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width is smaller than label metadata width'\n")
-                        continue
+                        process_curr_label = False
 
-            image_label_masks_list.append(np.ones(shape=image.shape[0:2], dtype=bool))
-            if source_type==1:
-                offset_height_ = round(label['ymin']*image.shape[0])-1
-                offset_width_  = round(label['xmin']*image.shape[1])-1
-                
-                image_cropped = tf.image.crop_to_bounding_box(
-                                          image         = image,
-                                          offset_height = offset_height_,
-                                          offset_width  = offset_width_,
-                                          target_height = round(label['ymax']*image.shape[0])-offset_height_,
-                                          target_width  = round(label['xmax']*image.shape[1])-offset_width_,
-                                         )
-                
-                image_label_masks_list[-1][:,:offset_width_                      ] = 0
-                image_label_masks_list[-1][:,round(label['xmax']*image.shape[1]):] = 0
-                
-                image_label_masks_list[-1][:offset_height_,offset_width_:round(label['xmax']*image.shape[1])                     ] = 0
-                image_label_masks_list[-1][round(label['ymax']*image.shape[0]):,offset_width_:round(label['xmax']*image.shape[1])] = 0
-                
-                label_dict = {
-                              'xmin': label['xmin'],
-                              'ymin': label['ymin'],
-                              'xmax': label['xmax'],
-                              'ymax': label['ymax'],
-                              'label': 'Raccoon',
-                              'width_to_height': (round(label['xmax']*image.shape[1])-offset_width_)/(round(label['ymax']*image.shape[0])-offset_height_),
-                }
-            elif source_type==2:            
-                offset_height_ = label['ymin']-1
-                offset_width_  = label['xmin']-1
-                image_cropped = tf.image.crop_to_bounding_box(
-                                          image         = image,
-                                          offset_height = offset_height_,
-                                          offset_width  = offset_width_,
-                                          target_height = label['ymax']-offset_height_,
-                                          target_width  = label['xmax']-offset_width_,
-                                         )
-                
-                image_label_masks_list[-1][:,:offset_width_] = 0
-                image_label_masks_list[-1][:,label['xmax']:] = 0
-                
-                image_label_masks_list[-1][:offset_height_,offset_width_:label['xmax']] = 0
-                image_label_masks_list[-1][label['ymax']:,offset_width_:label['xmax']] = 0
-                
-                label_dict = {
-                              'xmin' : label['xmin']/data_dict['image_width' ],
-                              'ymin' : label['ymin']/data_dict['image_height'],
-                              'xmax' : label['xmax']/data_dict['image_width' ],
-                              'ymax' : label['ymax']/data_dict['image_height'],
-                              'label': 'Raccoon',
-                              'width_to_height': (label['xmax']-offset_width_)/(label['ymax']-offset_height_),
-                }
-            elif source_type==3:
-                offset_height_ = floor(label['label_vert_center']-label['label_height']/2)-1
-                offset_width_  = floor(label['label_horz_center']-label['label_width']/2)-1
-                image_cropped = tf.image.crop_to_bounding_box(
-                                          image         = image,
-                                          offset_height = offset_height_,
-                                          offset_width  = offset_width_,
-                                          target_height = label['label_height'],
-                                          target_width  = label['label_width'],
-                                         )
-                
-                image_label_masks_list[-1][:,:offset_width_] = 0
-                image_label_masks_list[-1][:,(floor(label['label_horz_center']+label['label_width']/2)-1):] = 0
+                if process_curr_label:
+                    image_label_masks_list.append(np.ones(shape=image.shape[0:2], dtype=bool))
+                    if source_type==1:
+                        offset_height_ = round(label['ymin']*image.shape[0])-1
+                        offset_width_  = round(label['xmin']*image.shape[1])-1
+                        
+                        image_cropped = tf.image.crop_to_bounding_box(
+                                                  image         = image,
+                                                  offset_height = offset_height_,
+                                                  offset_width  = offset_width_,
+                                                  target_height = round(label['ymax']*image.shape[0])-offset_height_,
+                                                  target_width  = round(label['xmax']*image.shape[1])-offset_width_,
+                                                 )
+                        
+                        image_label_masks_list[-1][:,:offset_width_                      ] = 0
+                        image_label_masks_list[-1][:,round(label['xmax']*image.shape[1]):] = 0
+                        
+                        image_label_masks_list[-1][:offset_height_,offset_width_:round(label['xmax']*image.shape[1])                     ] = 0
+                        image_label_masks_list[-1][round(label['ymax']*image.shape[0]):,offset_width_:round(label['xmax']*image.shape[1])] = 0
+                        
+                        label_dict = {
+                                      'xmin': label['xmin'],
+                                      'ymin': label['ymin'],
+                                      'xmax': label['xmax'],
+                                      'ymax': label['ymax'],
+                                      'label': 'Raccoon',
+                                      'width_to_height': (round(label['xmax']*image.shape[1])-offset_width_)/(round(label['ymax']*image.shape[0])-offset_height_),
+                        }
+                    elif source_type==2:            
+                        offset_height_ = label['ymin']-1
+                        offset_width_  = label['xmin']-1
+                        image_cropped = tf.image.crop_to_bounding_box(
+                                                  image         = image,
+                                                  offset_height = offset_height_,
+                                                  offset_width  = offset_width_,
+                                                  target_height = label['ymax']-offset_height_,
+                                                  target_width  = label['xmax']-offset_width_,
+                                                 )
+                        
+                        image_label_masks_list[-1][:,:offset_width_] = 0
+                        image_label_masks_list[-1][:,label['xmax']:] = 0
+                        
+                        image_label_masks_list[-1][:offset_height_,offset_width_:label['xmax']] = 0
+                        image_label_masks_list[-1][label['ymax']:,offset_width_:label['xmax']] = 0
+                        
+                        label_dict = {
+                                      'xmin' : label['xmin']/data_dict['image_width' ],
+                                      'ymin' : label['ymin']/data_dict['image_height'],
+                                      'xmax' : label['xmax']/data_dict['image_width' ],
+                                      'ymax' : label['ymax']/data_dict['image_height'],
+                                      'label': 'Raccoon',
+                                      'width_to_height': (label['xmax']-offset_width_)/(label['ymax']-offset_height_),
+                        }
+                    elif source_type==3:
+                        offset_height_ = floor(label['label_vert_center']-label['label_height']/2)-1
+                        offset_width_  = floor(label['label_horz_center']-label['label_width']/2)-1
+                        image_cropped = tf.image.crop_to_bounding_box(
+                                                  image         = image,
+                                                  offset_height = offset_height_,
+                                                  offset_width  = offset_width_,
+                                                  target_height = label['label_height'],
+                                                  target_width  = label['label_width'],
+                                                 )
+                        
+                        image_label_masks_list[-1][:,:offset_width_] = 0
+                        image_label_masks_list[-1][:,(floor(label['label_horz_center']+label['label_width']/2)-1):] = 0
 
-                image_label_masks_list[-1][:offset_height_,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
-                image_label_masks_list[-1][(floor(label['label_vert_center']+label['label_height']/2)-1):,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
-                
-                label_dict = {
-                              'xmin': (offset_width_  + 1)/data_dict['image_width' ],
-                              'ymin': (offset_height_ + 1)/data_dict['image_height'],
-                              'xmax': (offset_width_  + 1 + label['label_width' ])/data_dict['image_width' ],
-                              'ymax': (offset_height_ + 1 + label['label_height'])/data_dict['image_height'],
-                              'label': 'Raccoon',
-                              'width_to_height': label['label_width']/label['label_height']
-                }
-            else:
-                raise NotImplementedError
-            label_width_to_ratio_list.append(label_dict['width_to_height'])
-            
-            image_cropped_padded = tf.image.resize_with_pad(
-                                                            image=image_cropped,
-                                                            target_height=self.config_data['max_height'],
-                                                            target_width=self.config_data['max_width'],
-                                                           )
-            
-            save_filename = data_dict['filename']
-            while True:
-                if os.path.isfile(os.path.join(self.path, self.config_data['output_folder'], save_filename)):
-                    extension_idx = save_filename.rfind('.')
-                    save_filename = save_filename[0:extension_idx] + '_' + save_filename[extension_idx:]
-                else:
-                    break
-            
-            save_img(
-                     path = os.path.join(self.path, self.config_data['output_folder'], save_filename),
-                     x    = image_cropped_padded,
-                    )
-            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: \'Saved output file \"{os.path.join(self.path, self.config_data['output_folder'], save_filename)}\"\'\n")
-            
-            data_dict_labels_list.append(label_dict)
+                        image_label_masks_list[-1][:offset_height_,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
+                        image_label_masks_list[-1][(floor(label['label_vert_center']+label['label_height']/2)-1):,offset_width_:(floor(label['label_horz_center']+label['label_width']/2)-1)] = 0
+                        
+                        label_dict = {
+                                      'xmin': (offset_width_  + 1)/data_dict['image_width' ],
+                                      'ymin': (offset_height_ + 1)/data_dict['image_height'],
+                                      'xmax': (offset_width_  + 1 + label['label_width' ])/data_dict['image_width' ],
+                                      'ymax': (offset_height_ + 1 + label['label_height'])/data_dict['image_height'],
+                                      'label': 'Raccoon',
+                                      'width_to_height': label['label_width']/label['label_height']
+                        }
+                    else:
+                        raise NotImplementedError
+                    label_width_to_ratio_list.append(label_dict['width_to_height'])
+                    
+                    image_cropped_padded = tf.image.resize_with_pad(
+                                                                    image=image_cropped,
+                                                                    target_height=self.config_data['max_height'],
+                                                                    target_width=self.config_data['max_width'],
+                                                                   )
+                    
+                    save_filename = data_dict['filename']
+                    while True:
+                        if os.path.isfile(os.path.join(self.path, self.config_data['output_folder'], save_filename)):
+                            extension_idx = save_filename.rfind('.')
+                            save_filename = save_filename[0:extension_idx] + '_' + save_filename[extension_idx:]
+                        else:
+                            break
+                    
+                    save_img(
+                             path = os.path.join(self.path, self.config_data['output_folder'], save_filename),
+                             x    = image_cropped_padded,
+                            )
+                    self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: \'Saved output file \"{os.path.join(self.path, self.config_data['output_folder'], save_filename)}\"\'\n")
+                    
+                    data_dict_labels_list.append(label_dict)
             
             
             idx_aux = idx+1
             while idx_aux<len(label_data['data']):
                 if isinstance(label_data['data'][idx_aux], dict):
                     break
+                else:
+                    idx_aux = idx_aux+1
             
             new_filename_flag = True
             if idx_aux<len(label_data['data']):
@@ -352,6 +359,7 @@ class ImageProcessing:
                    new_filename_flag = False
 
             if new_filename_flag: # meaning: end of label_data['data'] or new filename (image)
+                curr_filename_img_loaded = False # signal that image must be loaded for new filename
                 if len(image_label_masks_list)>1: # current image has more than one label
                     for idx_ in range(len(image_label_masks_list)):
                         image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
