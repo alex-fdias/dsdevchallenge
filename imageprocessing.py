@@ -224,11 +224,17 @@ class ImageProcessing:
                         self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata width does not match image width'\n")
                         process_curr_label = False
                 elif source_type==3:
-                    if label['label_height'] > image.shape[0]:
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata height is greater than image height'\n")
+                    if floor(label['label_vert_center']-label['label_height']/2)<1:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata for height is outside boundaries (less than 1)'\n")
                         process_curr_label = False
-                    if label['label_width'] > image.shape[1]:
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata width is greater than image width'\n")
+                    if floor(label['label_vert_center']+label['label_height']/2)>image.shape[0]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata for height is outside boundaries (greater than image height)'\n")
+                        process_curr_label = False
+                    if floor(label['label_horz_center']-label['label_width']/2)<1:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata for width is outside boundaries (less than 1)'\n")
+                        process_curr_label = False
+                    if floor(label['label_horz_center']+label['label_width']/2)>image.shape[1]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata for width is outside boundaries (greater than image width)'\n")
                         process_curr_label = False
 
                 if process_curr_label:
