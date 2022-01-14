@@ -210,25 +210,25 @@ class ImageProcessing:
             if curr_filename_img_loaded:
                 process_curr_label = True
                 if source_type==1:
-                    if image.shape[0] != label['image_height']:
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height does not match label metadata height'\n")
+                    if label['image_height'] != image.shape[0]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata height does not match image height'\n")
                         process_curr_label = False
-                    if image.shape[1] != label['image_width']:
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width does not match label metadata width'\n")
+                    if label['image_width'] != image.shape[1]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata width does not match image width'\n")
                         process_curr_label = False
                 elif source_type==2:
-                    if image.shape[0] != int(label['image_height']):
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height does not match label metadata height'\n")
+                    if int(label['image_height']) != image.shape[0]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata height does not match image height'\n")
                         process_curr_label = False
-                    if image.shape[1] != int(label['image_width']):
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width does not match label metadata width'\n")
+                    if int(label['image_width']) != image.shape[1]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata width does not match image width'\n")
                         process_curr_label = False
                 elif source_type==3:
-                    if image.shape[0] < label['label_height']:
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height is smaller than label metadata height'\n")
+                    if label['label_height'] > image.shape[0]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata height is greater than image height'\n")
                         process_curr_label = False
-                    if image.shape[1] < label['label_width']:
-                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width is smaller than label metadata width'\n")
+                    if label['label_width'] > image.shape[1]:
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label metadata width is greater than image width'\n")
                         process_curr_label = False
 
                 if process_curr_label:
@@ -359,34 +359,40 @@ class ImageProcessing:
                    new_filename_flag = False
 
             if new_filename_flag: # meaning: end of label_data['data'] or new filename (image)
-                curr_filename_img_loaded = False # signal that image must be loaded for new filename
-                if len(image_label_masks_list)>1: # current image has more than one label
-                    for idx_ in range(len(image_label_masks_list)):
+                if curr_filename_img_loaded:
+                    if len(image_label_masks_list)>0: # current image has at least one label
+                        if len(image_label_masks_list)>1: # current image has more than one label, "merge" to calculate label area percentage
+                            for idx_ in range(len(image_label_masks_list)):
+                                image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
+                                image_labels_aux[image_label_masks_list[idx_]] = image[image_label_masks_list[idx_]]
+                                
+                                if self.save_debug_imgs:
+                                    save_img(
+                                     path = os.path.join(self.path, self.folder_debug_imgs, curr_filename.replace('.jpg','_label_' + str(idx_+1) + '.jpg')),
+                                     x    = image_labels_aux,
+                                    )
+                               
+                            for idx_ in range(len(image_label_masks_list)-1):
+                                image_label_masks_list[-1] = np.bitwise_or(image_label_masks_list[-1],image_label_masks_list[idx_])
+                        
                         image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
-                        image_labels_aux[image_label_masks_list[idx_]] = image[image_label_masks_list[idx_]]
+                        image_labels_aux[image_label_masks_list[-1]] = image[image_label_masks_list[-1]]
                         
                         if self.save_debug_imgs:
                             save_img(
-                             path = os.path.join(self.path, self.folder_debug_imgs, curr_filename.replace('.jpg','_label_' + str(idx_+1) + '.jpg')),
-                             x    = image_labels_aux,
-                            )
-                       
-                    for idx_ in range(len(image_label_masks_list)-1):
-                        image_label_masks_list[-1] = np.bitwise_or(image_label_masks_list[-1],image_label_masks_list[idx_])
-                
-                image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
-                image_labels_aux[image_label_masks_list[-1]] = image[image_label_masks_list[-1]]
-                
-                if self.save_debug_imgs:
-                    save_img(
-                             path = os.path.join(self.path, self.folder_debug_imgs, curr_filename.replace('.jpg','_all_labels.jpg')),
-                             x    = image_labels_aux,
-                            )
-                data_dict['label_area_perc'] = image_label_masks_list[-1].sum()/np.prod(image.shape[0:2])
-                if data_dict['label_area_perc']>1.0:
-                    self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label area percentage calculated for file \"{os.path.join(self.path, filename_path)}\" is greater than 1'\n")
-                data_dict['labels'] = data_dict_labels_list
-                data_list.append(data_dict)
+                                     path = os.path.join(self.path, self.folder_debug_imgs, curr_filename.replace('.jpg','_all_labels.jpg')),
+                                     x    = image_labels_aux,
+                                    )
+                        
+                        data_dict['label_area_perc'] = image_label_masks_list[-1].sum()/np.prod(image.shape[0:2])
+                        if data_dict['label_area_perc']>1.0:
+                            self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label area percentage calculated for file \"{os.path.join(self.path, filename_path)}\" is greater than 1'\n")
+                    else:
+                        data_dict['label_area_perc'] = 0.0
+                    data_dict['labels'] = data_dict_labels_list
+                    data_list.append(data_dict)
+                    
+                    curr_filename_img_loaded = False # signal that image must be loaded for new filename
         
         return 0, (data_list, label_width_to_ratio_list)
     
