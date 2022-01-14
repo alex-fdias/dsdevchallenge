@@ -190,8 +190,8 @@ class ImageProcessing:
                 
                 if not os.path.isfile(os.path.join(self.path, filename_path)):
                     self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'File \"{os.path.join(self.path, filename_path)}\" specified in label metadata not found'\n")
-                    #sys.exit('-1')
                     continue
+                
                 self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Processing file \"{os.path.join(self.path, filename_path)}\"'\n")
                 image = load_img(
                      path       = filename_path,
@@ -201,18 +201,18 @@ class ImageProcessing:
                 
                 if source_type==1:
                     if image.shape[0] != label['image_height']:
-                        # log sth here
-                        return -1,'image height does not match height in metadata',{}
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height does not match label metadata height'\n")
+                        continue
                     if image.shape[1] != label['image_width']:
-                        # log sth here
-                        return -1,'image width does not match width in metadata',{}
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width does not match label metadata width'\n")
+                        continue
                 elif source_type==2:
                     if image.shape[0] != int(label['image_height']):
-                        # log sth here
-                        return -1,'image height does not match height in metadata',{}
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height does not match label metadata height'\n")
+                        continue
                     if image.shape[1] != int(label['image_width']):
-                        # log sth here
-                        return -1,'image width does not match width in metadata',{}
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width does not match label metadata width'\n")
+                        continue
 
                 data_dict['image_height'] = image.shape[0]
                 data_dict['image_width' ] = image.shape[1]
@@ -221,12 +221,10 @@ class ImageProcessing:
                 # another label for the same image 
                 if source_type==3:
                     if image.shape[0] < label['label_height']:
-                        # log sth here
-                        #return -1,'image height is smaller than label height in metadata',{}
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image height is smaller than label metadata height'\n")
                         continue
                     if image.shape[1] < label['label_width']:
-                        # log sth here
-                        #return -1,'image width is smaller than label width in metadata',{}
+                        self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Image width is smaller than label metadata width'\n")
                         continue
 
             image_label_masks_list.append(np.ones(shape=image.shape[0:2], dtype=bool))
