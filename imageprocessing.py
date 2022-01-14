@@ -351,8 +351,8 @@ class ImageProcessing:
                 if next_filename==curr_filename:
                    new_filename_flag = False
 
-            if new_filename_flag: # meaning: end of label_data['data'] or new filename
-                if len(image_label_masks_list)>1: # image with more than one label
+            if new_filename_flag: # meaning: end of label_data['data'] or new filename (image)
+                if len(image_label_masks_list)>1: # current image has more than one label
                     for idx_ in range(len(image_label_masks_list)):
                         image_labels_aux = np.zeros(shape=image.shape, dtype=image.dtype)
                         image_labels_aux[image_label_masks_list[idx_]] = image[image_label_masks_list[idx_]]
@@ -376,8 +376,7 @@ class ImageProcessing:
                             )
                 data_dict['label_area_perc'] = image_label_masks_list[-1].sum()/np.prod(image.shape[0:2])
                 if data_dict['label_area_perc']>1.0:
-                    # log error for calculated area value here
-                    pass
+                    self.print_save_log_file(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} {self.__class__.__module__}.{self.__class__.__name__} {inspect.currentframe().f_code.co_name} _: 'Label area percentage calculated for file \"{os.path.join(self.path, filename_path)}\" is greater than 1'\n")
                 data_dict['labels'] = data_dict_labels_list
                 data_list.append(data_dict)
         
