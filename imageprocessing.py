@@ -68,6 +68,20 @@ class ImageProcessing:
         else:
             return -1
 
+    @staticmethod
+    def filename_from_label(label, source_type):
+        if source_type==1:
+            filename = label['filename']
+        elif source_type==2:
+            slash_idx     = label['path'].rindex('/')
+            filename = label['path'][slash_idx+1:-3] + 'jpg'
+        elif source_type==3:
+            filename = label['filename'] + '.jpg'
+        else:
+            raise NotImplementedError
+        
+        return filename, slash_idx
+
     def print_save_log_file(self, output_str):
         print(output_str, end='')
         with open(os.path.join(self.path, self.log_filename), 'a', encoding='utf-8') as f:
@@ -164,15 +178,7 @@ class ImageProcessing:
                 continue
             
             if new_filename_flag:
-                if source_type==1:
-                    curr_filename = label['filename']
-                elif source_type==2:
-                    slash_idx     = label['path'].rindex('/')
-                    curr_filename = label['path'][slash_idx+1:-3] + 'jpg'
-                elif source_type==3:
-                    curr_filename = label['filename'] + '.jpg'
-                else:
-                    raise NotImplementedError
+                curr_filename, slash_idx = filename_from_label(label, source_type)
                 
                 data_dict              = {}
                 image_label_masks_list = []
@@ -352,15 +358,8 @@ class ImageProcessing:
             new_filename_flag = True
             if idx_aux<len(label_data['data']):
                 next_label = label_data['data'][idx_aux]
-                if source_type==1:
-                    next_filename = next_label['filename']
-                elif source_type==2:
-                    slash_idx     = next_label['path'].rindex('/')
-                    next_filename = next_label['path'][slash_idx+1:-3] + 'jpg'
-                elif source_type==3:
-                    next_filename = next_label['filename'] + '.jpg'
-                else:
-                    raise NotImplementedError
+                
+                next_filename, _ = filename_from_label(label, source_type)
                 if next_filename==curr_filename:
                    new_filename_flag = False
 
